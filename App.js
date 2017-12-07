@@ -28,9 +28,9 @@ export default class ImoocApp extends Component {
 
   render() {
     return (
-      <TabBarIOS 
-      tintColor="#ffcd32"
-      barTintColor="#222"
+      <TabBarIOS
+        tintColor="#ffcd32"
+        barTintColor="#222"
       >
         <Icon.TabBarItem
           iconName='ios-videocam-outline'
@@ -71,5 +71,5 @@ export default class ImoocApp extends Component {
 }
 
 const styles = StyleSheet.create({
-  
+
 });

@@ -10,52 +10,164 @@ import {
     ListView,
     Image,
     Dimensions,
-    TouchableHighlight
+    TouchableHighlight,
+    ActivityIndicator,
+    RefreshControl
 } from 'react-native';
 
 
 const width = Dimensions.get('window').width;
+const cachedResults = {
+    nextPage: 1,
+    items: [],
+    total: 0
+}
+
 
 class List extends Component {
+    //变量
     constructor(props) {
         super(props);
         var ds = new ListView.DataSource({ rowHasChanged: (r1, r2) => r1 !== r2 });
         this.state = {
             dataSource: ds.cloneWithRows([]),
+            carouselImage: [],
+            isLoadingTail: false,
+            isRefreshing: false
         };
     }
+
+    //初始化加载
     componentDidMount() {
-        this._fetchData()
-    }
-    _fetchData() {
-        request.get('http://www.missxiaolin.com/api/getDiscList', {
-            g_tk: '1928093487',
-            inCharset: 'utf-8',
-            outCharset: 'utf-8',
-            notice: 0,
-            format: 'json',
-            platform: 'yqq',
-            hostUin: 0,
-            sin: 0,
-            ein: 29,
-            sortId: 5,
-            needNewCode: 0,
-            categoryId: 10000000,
-            rnd: 0.9471251144380579
-        })
-            .then((responseJson) => {
-                if (responseJson) {
-                    console.log(responseJson);
-                    this.setState({
-                        dataSource: this.state.dataSource.cloneWithRows(responseJson.data.list)
-                    })
-                }
-            })
-            .catch((error) => {
-                console.error(error);
-            });
+        this._fetchData(1);
+        this._fetchCarouselImage();
     }
 
+    //轮播图数据
+    _fetchCarouselImage() {
+        request.get('https://c.y.qq.com/musichall/fcgi-bin/fcg_yqqhomepagerecommend.fcg', {
+            g_tk: 1928093487,
+            inCharset: 'utf-8',
+            outCharset: 'utf-8',
+            format: 'json',
+            ein: 200,
+            categoryId: 10000000,
+        }).then((responseJson) => {
+            if (responseJson) {
+                // console.log(responseJson);
+
+                this.setState({
+                    carouselImage: responseJson.data.slider
+                })
+            }
+        }).catch((error) => {
+            console.error(error);
+        });
+    }
+
+    //列表页数据
+    _fetchData(page) {
+        let that = this;
+        if (page !== 0) {
+            this.setState({
+                isLoadingTail: true
+            })
+        } else {
+            this.setState({
+                isLoadingTail: false
+            })
+        }
+
+        request.get(config.api.base + config.api.list, {
+            g_tk: 1928093487,
+            inCharset: 'utf-8',
+            outCharset: 'utf-8',
+            format: 'json',
+            ein: page + '0',
+            categoryId: 10000000
+        }).then((responseJson) => {
+            if (responseJson.data.list.length) {
+                // console.log(responseJson);
+
+                let items = cachedResults.items.slice();
+                items = items.concat(responseJson.data.list);
+
+                if (page !== 0) {
+                    cachedResults.nextPage += 1;
+                    cachedResults.items = items;
+                    cachedResults.total = responseJson.data.sum;
+                } else {
+                    items = items.concat(items);
+                }
+
+
+                setTimeout(function () {
+                    if (page !== 0) {
+                        that.setState({
+                            isLoadingTail: false,
+                            dataSource: that.state.dataSource.cloneWithRows(responseJson.data.list)
+                        })
+                    } else {
+                        that.setState({
+                            isRefreshing: false,
+                            dataSource: that.state.dataSource.cloneWithRows(responseJson.data.list)
+                        })
+                    }
+                }, 20)
+            }
+        }).catch((error) => {
+            if (page !== 0) {
+                isLoadingTail: false
+            } else {
+                isRefreshing: false
+            }
+            this.setState({
+                isLoadingTail: false
+            })
+            console.error(error);
+        });
+    }
+
+    _hasMore() {
+        return cachedResults.items.length !== this.state.total;
+    }
+
+    //上拉加载
+    _fetchMoreData() {
+        if (!this._hasMore() || this.state.isLoadingTail) {
+            return
+        }
+
+        let page = cachedResults.nextPage;
+        this._fetchData(page);
+    }
+
+    //上拉加载 - 没有更多了提示
+    _renderFooter() {
+        if (!this._hasMore() && this.state.total !== 0) {
+            return (
+                <View style={styles.loadingMore}>
+                    <Text style={styles.loadingText}>没有更多了</Text>
+                </View>
+            );
+        }
+
+        if (!this.state.isLoadingTail) {
+            return <View style={styles.loadingMore} />
+        }
+
+        return <ActivityIndicator style={styles.loadingMore} />
+    }
+
+    //下拉刷新
+    _onRefresh() {
+        if (!this._hasMore() || this.state.isRefreshing) {
+            return
+        }
+        this._fetchData(1);
+    }
+
+    //ListView模板
     renderRow(row) {
         return (
             <TouchableHighlight>
@@ -89,6 +201,20 @@ class List extends Component {
                     renderRow={this.renderRow}
                     automaticallyAdjustContentInsets={false}
                     enableEmptySections={true}
+                    onEndReached={this._fetchMoreData.bind(this)}
+                    onEndReachedThreshold={1}
+                    renderFooter={this._renderFooter.bind(this)}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={this.state.isRefreshing}
+                            onRefresh={this._onRefresh.bind(this)}
+                            tintColor="#ffcd32"
+                            title="拼命加载中..."
+                            titleColor="#fff"
+                            colors={['#ff0000', '#00ff00', '#0000ff']}
+                            progressBackgroundColor="#ffff00"
+                        />
+                    }
                 />
             </View >
         )
@@ -100,6 +226,14 @@ const styles = StyleSheet.create({
         marginTop: 25,
         flex: 1,
         backgroundColor: '#222',
+    },
+    //loading
+    loadingMore: {
+        marginVertical: 20
+    },
+    loadingText: {
+        color: '#777',
+        textAlign: 'center'
     },
     //头部
     header: {

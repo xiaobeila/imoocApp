@@ -7,16 +7,18 @@ import config from './config';
 const request = {};
 
 request.get = function (url, params) {
+    let options = _.extend(config.getHeader)
+
     if (params) {
         url += '?' + queryString.stringify(params)
     }
 
-    return fetch(url)
+    return fetch(url, options)
         .then((response) => response.json())
 }
 
 request.post = function (url, body) {
-    let options = _.extend(config.header, {
+    let options = _.extend(config.postHeader, {
         body: JSON.stringify(body)
     })
 

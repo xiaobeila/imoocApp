@@ -1,6 +1,6 @@
 'use strict'
 
-module.exxporte = {
+module.exports = {
     header: {
         method: 'POST',
         headers: {
