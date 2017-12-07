@@ -6,7 +6,9 @@
 
 import React, { Component } from 'react';
 import Icon from 'react-native-vector-icons/Ionicons';
-import List from './app/list/index';
+
+//推荐
+import Recommend from './app/recommend/index';
 import Edit from './app/edit/index';
 import Account from './app/account/index';
 
@@ -15,7 +17,8 @@ import {
   StyleSheet,
   Text,
   View,
-  TabBarIOS
+  TabBarIOS,
+  NavigatorIOS
 } from 'react-native';
 
 export default class ImoocApp extends Component {
@@ -41,7 +44,21 @@ export default class ImoocApp extends Component {
               selectedTab: 'blueTab',
             });
           }}>
-          <List />
+          <NavigatorIOS
+            initialRoute={{
+              title: '',
+              component: Recommend
+            }}
+            configureScene={(route) => {
+              return Navigator.SceneConfigs.FloatFromRight
+            }}
+            renderScene={(route, navigator) => {
+              let Component = route.component
+              return <Component {...route.params} navigator={navigator} />
+            }}
+            style={{ flex: 1 }}
+            navigationBarHidden={true}
+          />
         </Icon.TabBarItem>
         <Icon.TabBarItem
           iconName='ios-recording-outline'

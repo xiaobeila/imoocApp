@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Icon from 'react-native-vector-icons/Ionicons';
 import request from '../common/request';
 import config from '../common/config';
+import List from './list';
 
 import {
     StyleSheet,
@@ -15,7 +16,6 @@ import {
     RefreshControl
 } from 'react-native';
 
-
 const width = Dimensions.get('window').width;
 const cachedResults = {
     nextPage: 1,
@@ -23,8 +23,35 @@ const cachedResults = {
     total: 0
 }
 
+//列表模板
+class Item extends Component {
+    //初始变量
+    constructor(props) {
+        super(props);
+        this.state = {
+            row: this.props.row
+        };
+    }
 
-class List extends Component {
+    render() {
+        let row = this.state.row;
+        return (
+            <TouchableHighlight onPress={this.props.onSelect}>
+                <View style={styles.item}>
+                    <View style={styles.thumb}>
+                        <Image source={{ uri: row.imgurl }} style={{ width: 60, height: 60 }} />
+                    </View>
+                    <View style={styles.text}>
+                        <Text style={styles.name} ellipsizeMode='tail' numberOfLines={1}>{row.creator['name']}</Text>
+                        <Text style={styles.desc} ellipsizeMode='tail' numberOfLines={1}>{row.dissname}</Text>
+                    </View>
+                </View>
+            </TouchableHighlight>
+        )
+    }
+}
+
+class Recommend extends Component {
     //变量
     constructor(props) {
         super(props);
@@ -168,20 +195,21 @@ class List extends Component {
     }
 
     //ListView模板
-    renderRow(row) {
-        return (
-            <TouchableHighlight>
-                <View style={styles.item}>
-                    <View style={styles.thumb}>
-                        <Image source={{ uri: row.imgurl }} style={{ width: 60, height: 60 }} />
-                    </View>
-                    <View style={styles.text}>
-                        <Text style={styles.name} ellipsizeMode='tail' numberOfLines={1}>{row.creator['name']}</Text>
-                        <Text style={styles.desc} ellipsizeMode='tail' numberOfLines={1}>{row.dissname}</Text>
-                    </View>
-                </View>
-            </TouchableHighlight>
-        )
+    _renderRow(row) {
+        return <Item
+            key={row.dissid}
+            onSelect={() => this._loadPage(row)}
+            row={row} />
+    }
+
+    _loadPage(row) {
+        this.props.navigator.push({
+            name: 'list',
+            component: List,
+            params: {
+                row: row
+            }
+        })
     }
 
     render() {
@@ -198,7 +226,7 @@ class List extends Component {
                 </View>
                 <ListView
                     dataSource={this.state.dataSource}
-                    renderRow={this.renderRow}
+                    renderRow={this._renderRow.bind(this)}
                     automaticallyAdjustContentInsets={false}
                     enableEmptySections={true}
                     onEndReached={this._fetchMoreData.bind(this)}
@@ -292,4 +320,4 @@ const styles = StyleSheet.create({
     }
 });
 
-module.exports = List;
+module.exports = Recommend;
