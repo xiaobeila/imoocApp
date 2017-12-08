@@ -8,7 +8,8 @@ import React, { Component } from 'react';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 //推荐
-import Recommend from './app/recommend/index';
+import Recommend from './app/recommend/recommend';
+import List from './app/recommend/list';
 import Edit from './app/edit/index';
 import Account from './app/account/index';
 

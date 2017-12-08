@@ -7,11 +7,13 @@ import config from './config';
 const request = {};
 
 request.get = function (url, params) {
-    let options = _.extend(config.getHeader)
+    let options = _.extend({
+        inCharset: 'utf-8',
+        outCharset: 'utf-8',
+        format: 'json'
+    }, params)
 
-    if (params) {
-        url += '?' + queryString.stringify(params)
-    }
+    url += '?' + queryString.stringify(options)
 
     return fetch(url, options)
         .then((response) => response.json())

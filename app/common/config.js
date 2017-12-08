@@ -10,6 +10,7 @@ module.exports = {
     },
     api: {
         base: 'http://www.missxiaolin.com/',
-        list: 'api/getDiscList'
+        getDiscList: 'api/getDiscList',
+        getSongList: 'api/getSongList'
     }
 }

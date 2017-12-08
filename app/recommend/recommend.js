@@ -67,16 +67,13 @@ class Recommend extends Component {
     //初始化加载
     componentDidMount() {
         this._fetchData(1);
-        this._fetchCarouselImage();
+        // this._fetchCarouselImage();
     }
 
     //轮播图数据
     _fetchCarouselImage() {
         request.get('https://c.y.qq.com/musichall/fcgi-bin/fcg_yqqhomepagerecommend.fcg', {
             g_tk: 1928093487,
-            inCharset: 'utf-8',
-            outCharset: 'utf-8',
-            format: 'json',
             ein: 200,
             categoryId: 10000000,
         }).then((responseJson) => {
@@ -105,11 +102,8 @@ class Recommend extends Component {
             })
         }
 
-        request.get(config.api.base + config.api.list, {
+        request.get(config.api.base + config.api.getDiscList, {
             g_tk: 1928093487,
-            inCharset: 'utf-8',
-            outCharset: 'utf-8',
-            format: 'json',
             ein: page + '0',
             categoryId: 10000000
         }).then((responseJson) => {
