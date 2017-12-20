@@ -1,7 +1,19 @@
 ### Running the examples on iOS
+`npm install -g react-native-cli`
+`npm i`
 `react-native run-ios`
-Now open any example (the .xcodeproj file in each of the Examples subdirectories) and hit Run in Xcode.
 
+### 运行react-native 工程时，出错：xcrun: error: unable to find utility "instruments", not a developer tool or in PATH
+`解决方法：在 终端执行如下命令 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer/`
+
+### 【已解决】ReactNative iOS运行出错：No bundle URL present
+Now open any example (the .xcodeproj file in each of the Examples subdirectories) and hit Run in Xcode.
+```
+在iOS 模拟器已运行的情况下，在项目根目录的命令行中执行：
+
+npm install
+react-native run-ios
+```
 
 # React-NatIve学习
 [react-native文档](http://reactnative.cn/docs/0.50/tutorial.html#content)

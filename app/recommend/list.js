@@ -3,6 +3,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 
 import request from '../common/request';
 import config from '../common/config';
+import Player from './player';
 
 import {
     StyleSheet,
@@ -35,7 +36,7 @@ class Item extends Component {
     render() {
         let row = this.state.row;
         return (
-            <TouchableHighlight>
+            <TouchableHighlight onPress={this.props.onSelect}>
                 <View style={styles.item}>
                     <View style={styles.textBox}>
                         <Text style={styles.name} ellipsizeMode='tail' numberOfLines={1}>{row.songname}</Text>
@@ -98,7 +99,19 @@ class List extends Component {
     //ListView模板
     _renderRow(row) {
         return <Item
+            key={row.dissid}
+            onSelect={() => this._loadPage(row)}
             row={row} />
+    }
+    
+    _loadPage(row) {
+        this.props.navigator.push({
+            name: 'player',
+            component: Player,
+            params: {
+                data: row
+            }
+        })
     }
 
     render() {
