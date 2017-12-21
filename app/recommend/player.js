@@ -14,12 +14,14 @@ import {
     Image,
     TouchableOpacity,
     Slider,
-    ScrollView
+    ScrollView,
+    Animated,
+    Easing
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 const lyrObj = []   // 存放歌词
-
+var myAnimate;
 class Player extends Component {
     //初始变量
     constructor(props) {
@@ -38,8 +40,51 @@ class Player extends Component {
             currentTime: 0.0,   //当前时间
             sliderValue: 0,    //Slide的value
             file_duration: 0,    //歌曲长度
+            pic_small: '',    //小图
+            pic_big: '',      //大图
+            imgRotate: new Animated.Value(0),
         };
+        this.isGoing = false; //为真旋转
+        this.myAnimate = Animated.timing(this.state.imgRotate, {
+            toValue: 1,
+            duration: 6000,
+            easing: Easing.inOut(Easing.linear),
+        });
     }
+
+    imgMoving = () => {
+        if (this.isGoing) {
+            this.state.imgRotate.setValue(0);
+            this.myAnimate.start(() => {
+                this.imgMoving()
+            })
+        }
+    };
+
+    stop = () => {
+        this.isGoing = !this.isGoing;
+
+        if (this.isGoing) {
+            this.myAnimate.start(() => {
+                this.myAnimate = Animated.timing(this.state.imgRotate, {
+                    toValue: 1,
+                    duration: 6000,
+                    easing: Easing.inOut(Easing.linear),
+                });
+                this.imgMoving()
+            })
+        } else {
+            this.state.imgRotate.stopAnimation((oneTimeRotate) => {
+                //计算角度比例
+                this.myAnimate = Animated.timing(this.state.imgRotate, {
+                    toValue: 1,
+                    duration: (1 - oneTimeRotate) * 6000,
+                    easing: Easing.inOut(Easing.linear),
+                });
+            });
+
+        }
+    };
 
     //返回上一页
     _backToList() {
@@ -48,6 +93,7 @@ class Player extends Component {
 
     //初始化加载
     componentDidMount() {
+        this.stop();
         this.getLyric();
     }
 
@@ -190,12 +236,23 @@ class Player extends Component {
                     <Text style={styles.headerTitle} ellipsizeMode='tail'>{data.songname}</Text>
                     <Text style={styles.singer} ellipsizeMode='tail'>{data.singer[0].name}</Text>
                 </View>
-                <Image source={require('../images/film-reel.png')} style={{ width: 220, height: 220, alignSelf: 'center' }} />
-                {/* <Image
-                    style={styles.image}
-                    source=
-                    resizeMode='cover'
-                /> */}
+
+                <Image source={require('../images/film-reel.png')} style={{ width: 220, height: 220, alignSelf: 'center', marginTop: 50 }} />
+
+                {/*旋转小图*/}
+                <Animated.Image
+                    ref='myAnimate'
+                    style={{
+                        width: 140, height: 140, marginTop: -180, alignSelf: 'center', borderRadius: 140 * 0.5, transform: [{
+                            rotate: this.state.imgRotate.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0deg', '360deg']
+                            })
+                        }]
+                    }}
+                    source={{ uri: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${data.albummid}.jpg?max_age=2592000` }}
+                />
+
                 {/*歌词*/}
                 <View style={styles.playingLyricWrapper}>
                     <ScrollView style={{ position: 'relative' }} ref={(scrollView) => { _scrollView = scrollView }}>
@@ -247,14 +304,16 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        resizeMode: 'cover'
+        width: null,
+        height: null,
+        resizeMode: 'cover',
     },
     filter: {
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
-        height: '105%',
+        height: '100%',
         backgroundColor: 'rgba(7, 17, 27, .4)'
     },
     header: {
@@ -266,6 +325,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         width: width,
+        height: 30,
         paddingTop: 5,
         color: '#fff',
         fontSize: 18,
@@ -330,6 +390,7 @@ const styles = StyleSheet.create({
         paddingBottom: 20
     },
     textName: {
+        width:'75%',
         color: '#fff'
     },
     textTime: {
@@ -339,8 +400,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent'
     },
     playingLyricWrapper: {
+        marginTop: 50,
         height: 140,
-        alignItems: 'center'
+        alignItems: 'center',
     },
     itemStyle: {
         paddingTop: 20,
