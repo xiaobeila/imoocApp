@@ -44,7 +44,7 @@ class Player extends Component {
             pic_big: '',      //大图
             imgRotate: new Animated.Value(0),
         };
-        this.isGoing = false; //为真旋转
+        this.isGoing = true; //为真旋转
         this.myAnimate = Animated.timing(this.state.imgRotate, {
             toValue: 1,
             duration: 6000,
@@ -93,7 +93,7 @@ class Player extends Component {
 
     //初始化加载
     componentDidMount() {
-        this.stop();
+        this.imgMoving();
         this.getLyric();
     }
 
@@ -200,6 +200,7 @@ class Player extends Component {
     }
 
     _playButton() {
+        this.stop();
         this.setState({
             playButton: this.state.videoPause ? 'pause-circle' : 'play-circle',
             videoPause: !this.state.videoPause
