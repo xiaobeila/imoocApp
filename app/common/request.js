@@ -20,7 +20,7 @@ request.get = function (url, params) {
 }
 
 request.post = function (url, body) {
-    let options = _.extend(config.postHeader, {
+    let options = _.extend(config.postHeaders, {
         body: JSON.stringify(body)
     })
 

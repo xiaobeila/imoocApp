@@ -1,7 +1,7 @@
 'use strict'
 
 module.exports = {
-    header: {
+    postHeaders: {
         method: 'POST',
         headers: {
             'Accept': 'application/json',

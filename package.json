@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "lodash": "^4.17.4",
-    "lyric-parser": "^1.0.1",
     "query-string": "^5.0.1",
     "react": "16.0.0",
     "react-native": "^0.50.4",
