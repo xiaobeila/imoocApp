@@ -31,14 +31,13 @@ export default class ImoocApp extends Component {
     super(props);
     this.state = {
       selectedTab: 'blueTab',
-      booted: false,
       entered: false
     };
   }
 
   //初始化加载
   componentDidMount() {
-    // AsyncStorage.removeItem('entered')
+    AsyncStorage.removeItem('entered')
     this._asyncAppStatus()
   }
 
@@ -51,7 +50,6 @@ export default class ImoocApp extends Component {
         if (entered == 'yes') {
           this.setState({
             entered: true,
-            booted: true
           })
         }
       })
@@ -59,27 +57,19 @@ export default class ImoocApp extends Component {
 
   _enterSlider() {
     this.setState({
-      entered: true
+      entered: true,
     }, () => {
       AsyncStorage.setItem('entered', 'yes')
     })
   }
 
   render() {
-
-    if (!this.state.booted) {
-      return (
-        <View style={styles.bootPage}>
-          <ActivityIndicator color="#ee735c" />
-        </View>
-      )
-    }
-
     if (!this.state.entered) {
       return <Slider
         enterSlider={this._enterSlider.bind(this)}
       />
     }
+
     return (
       <TabBarIOS
         tintColor="#ffcd32"
@@ -138,9 +128,4 @@ export default class ImoocApp extends Component {
 }
 
 const styles = StyleSheet.create({
-  bootPage: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center'
-  }
 });
