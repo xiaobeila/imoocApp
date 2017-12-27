@@ -77,6 +77,7 @@ class List extends Component {
             type: 1
         }).then((responseJson) => {
             if (responseJson) {
+                console.log(responseJson);
                 cachedResults.dissName = responseJson.cdlist[0].dissname;
                 cachedResults.bgImage = responseJson.cdlist[0].logo;
 

@@ -3,9 +3,9 @@
 <plist version="1.0">
   <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
+    <string>zh-CN</string>
     <key>CFBundleDisplayName</key>
-    <string>imoocApp</string>
+    <string>音乐播放器</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>

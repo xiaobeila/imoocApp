@@ -32,6 +32,7 @@ class Player extends Component {
             data: this.props.route.params.data,
             videoPause: false,
             playButton: 'pause-circle',
+            playModel: 1,  // 播放模式  1:列表循环    2:随机    3:单曲循环
             sliderValue: 0,
             current: '00:00',   //播放时间
             duration: 0.0,     //歌曲时间
@@ -41,7 +42,7 @@ class Player extends Component {
             sliderValue: 0,    //Slide的value
             file_duration: 0,    //歌曲长度
             pic_small: '',    //小图
-            pic_big: '',      //大图
+            currentIndex: 0,    //当前第几首
             imgRotate: new Animated.Value(0),
         };
         this.isGoing = true; //为真旋转
@@ -93,8 +94,8 @@ class Player extends Component {
 
     //初始化加载
     componentDidMount() {
-        this.imgMoving();
         this.getLyric();
+        this.imgMoving();
     }
 
     _onProgress(data) {
@@ -103,6 +104,22 @@ class Player extends Component {
             sliderValue: sliderValue,
             currentTime: data.currentTime
         })
+
+        //如果当前歌曲播放完毕,需要开始下一首
+        if (sliderValue == this.state.file_duration) {
+            if (this.state.playModel == 1) {
+                //列表 就播放下一首
+                this.nextAction(this.state.currentIndex + 1)
+            } else if (this.state.playModel == 2) {
+                let last = this.state.songs.length //json 中共有几首歌
+                let random = Math.floor(Math.random() * last)  //取 0~last之间的随机整数
+                this.nextAction(random) //播放
+            } else {
+                //单曲 就再次播放当前这首歌曲
+                this.refs.video.seek(0) //让video 重新播放
+                _scrollView.scrollTo({ x: 0, y: 0, animated: false });
+            }
+        }
     }
 
     // 获取歌词
@@ -182,7 +199,7 @@ class Player extends Component {
                 //正在唱的歌词
                 itemAry.push(
                     <View key={i} style={styles.itemStyle}>
-                        <Text style={{ color: '#fff' }}> {item} </Text>
+                        <Text style={{ color: '#fff', textAlign: 'center' }}> {item} </Text>
                     </View>
                 );
                 _scrollView.scrollTo({ x: 0, y: (25 * i), animated: false });
@@ -191,7 +208,7 @@ class Player extends Component {
                 //所有歌词
                 itemAry.push(
                     <View key={i} style={styles.itemStyle}>
-                        <Text style={{ color: 'hsla(0,0%,100%,.5)' }}> {item} </Text>
+                        <Text style={{ color: 'hsla(0,0%,100%,.5)', textAlign: 'center' }}> {item} </Text>
                     </View>
                 )
             }
@@ -391,7 +408,7 @@ const styles = StyleSheet.create({
         paddingBottom: 20
     },
     textName: {
-        width:'75%',
+        width: '75%',
         color: '#fff'
     },
     textTime: {
