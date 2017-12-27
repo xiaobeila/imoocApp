@@ -37,7 +37,7 @@ export default class ImoocApp extends Component {
 
   //初始化加载
   componentDidMount() {
-    AsyncStorage.removeItem('entered')
+    // AsyncStorage.removeItem('entered')
     this._asyncAppStatus()
   }
 
