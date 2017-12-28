@@ -16,7 +16,8 @@ import {
     Slider,
     ScrollView,
     Animated,
-    Easing
+    Easing,
+    ActivityIndicator
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -26,10 +27,10 @@ class Player extends Component {
     //初始变量
     constructor(props) {
         super(props);
-        console.log(this.props.route.params.data);
+        this.spinValue = new Animated.Value(0)
         this.state = {
-            id: this.props.route.params.data.songid,
-            data: this.props.route.params.data,
+            songid: 0,
+            data: [],
             videoPause: false,
             playButton: 'pause-circle',
             playModel: 1,  // 播放模式  1:列表循环    2:随机    3:单曲循环
@@ -42,8 +43,11 @@ class Player extends Component {
             sliderValue: 0,    //Slide的value
             file_duration: 0,    //歌曲长度
             pic_small: '',    //小图
-            currentIndex: 0,    //当前第几首
+            currentIndex: parseInt(this.props.route.params.index),    //当前第几首
             imgRotate: new Animated.Value(0),
+            songs: this.props.route.params.songidAry,   //歌曲的ID组
+            audioUrl: '',
+            file_link: '',   //歌曲播放链接
         };
         this.isGoing = true; //为真旋转
         this.myAnimate = Animated.timing(this.state.imgRotate, {
@@ -83,7 +87,6 @@ class Player extends Component {
                     easing: Easing.inOut(Easing.linear),
                 });
             });
-
         }
     };
 
@@ -94,37 +97,36 @@ class Player extends Component {
 
     //初始化加载
     componentDidMount() {
-        this.getLyric();
+        this.loadSongInfo(this.state.currentIndex);
         this.imgMoving();
     }
 
-    _onProgress(data) {
-        let sliderValue = parseInt(data.currentTime)
+    loadSongInfo = (index) => {
+        //加载歌曲
+        let that = this;
+        let songid = this.state.songs[index]
         this.setState({
-            sliderValue: sliderValue,
-            currentTime: data.currentTime
+            songid: songid,
+            file_link: `http://ws.stream.qqmusic.qq.com/${songid}.m4a?fromtag=46`
         })
 
-        //如果当前歌曲播放完毕,需要开始下一首
-        if (sliderValue == this.state.file_duration) {
-            if (this.state.playModel == 1) {
-                //列表 就播放下一首
-                this.nextAction(this.state.currentIndex + 1)
-            } else if (this.state.playModel == 2) {
-                let last = this.state.songs.length //json 中共有几首歌
-                let random = Math.floor(Math.random() * last)  //取 0~last之间的随机整数
-                this.nextAction(random) //播放
-            } else {
-                //单曲 就再次播放当前这首歌曲
-                this.refs.video.seek(0) //让video 重新播放
-                _scrollView.scrollTo({ x: 0, y: 0, animated: false });
+        request.get(config.api.base + config.api.getSongList, {
+            g_tk: 1928093487,
+            disstid: this.props.route.params.disstid,
+            type: 1
+        }).then((responseJson) => {
+            if (responseJson) {
+                this.setState({
+                    data: responseJson.cdlist[0].songlist[this.state.currentIndex]
+                })
             }
-        }
-    }
+        }).catch((error) => {
+            console.error(error);
+        });
 
-    // 获取歌词
-    getLyric = () => {
-        let that = this;
+
+        // 获取歌词
+        lyrObj = [];
         const init = {
             method: 'GET',
             headers: {
@@ -134,7 +136,7 @@ class Player extends Component {
             },
         };
 
-        fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=753738303&nobase64=1&callback=jsonp1&musicid=${this.state.id}`, init)
+        fetch(`https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=753738303&nobase64=1&callback=jsonp1&musicid=${songid}`, init)
             .then((response) => response.text())
             .then((responseJson) => {
                 var str = responseJson.substr(6);
@@ -171,6 +173,51 @@ class Player extends Component {
                 })
             })
             .catch(e => { console.log(`error ${e}`) });
+    }
+
+    _onProgress(data) {
+        let sliderValue = parseInt(data.currentTime)
+        this.setState({
+            sliderValue: sliderValue,
+            currentTime: data.currentTime
+        })
+
+        //如果当前歌曲播放完毕,需要开始下一首
+        if (sliderValue == this.state.file_duration) {
+            if (this.state.playModel == 1) {
+                //列表 就播放下一首
+                this.nextAction(this.state.currentIndex + 1)
+            } else if (this.state.playModel == 2) {
+                let last = this.state.songs.length //json 中共有几首歌
+                let random = Math.floor(Math.random() * last)  //取 0~last之间的随机整数
+                this.nextAction(random) //播放
+            } else {
+                //单曲 就再次播放当前这首歌曲
+                this.refs.video.seek(0) //让video 重新播放
+                _scrollView.scrollTo({ x: 0, y: 0, animated: false });
+            }
+        }
+    }
+
+    //下一曲
+    nextAction = (index) => {
+        this.recover()
+        lyrObj = [];
+        if (index == this.state.songs.length) {
+            index = 0 //如果是最后一首就回到第一首
+        }
+        this.setState({
+            currentIndex: index,  //更新数据
+        })
+        this.loadSongInfo(index)   //加载数据
+    }
+
+    //换歌时恢复进度条 和起始时间
+    recover = () => {
+        this.setState({
+            sliderValue: 0,
+            currentTime: 0.0
+        })
     }
 
     //把秒数转换为时间类型
@@ -226,80 +273,98 @@ class Player extends Component {
 
     render() {
         let data = this.state.data;
-        return (
-            <View style={styles.container}>
-                <Video
-                    source={{ uri: `http://ws.stream.qqmusic.qq.com/${this.state.id}.m4a?fromtag=46` }}   // Can be a URL or a local file.
-                    ref='video'                    // Store reference
-                    rate={1.0}                     // 0 is paused(停止), 1 is normal(正常).
-                    volume={1.0}                   // 0 is muted(静音), 1 is normal.
-                    muted={false}                  // Mutes the audio entirely(完全静音).
-                    paused={this.state.videoPause} // Pauses playback entirely(暂停播放完全).
-                    repeat={false}                 // Repeat forever(永远重复).
-                    playInBackground={true}       // Audio continues to play when app entering background(当应用程序进入背景时音频继续播放。).
-                    // playWhenInactive={false}       // [iOS] Video continues to play when control or notification center are shown.(视频播放)
-                    // progressUpdateInterval={250.0} // [iOS] Interval to fire onProgress (default to ~250ms)(进度)
-                    onProgress={this._onProgress.bind(this)}
-                    onLoad={(e) => this.onLoad(e)}  //获取播放总时长
-                />
+        //如果未加载出来数据 就一直转菊花
+        if (this.state.data.length <= 0) {
+            return (
+                <ActivityIndicator
+                    animating={this.state.animating}
+                    style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+                    size="large" />
+            )
+        } else {
+            return (
+                <View style={styles.container}>
+                    <Video
+                        source={{ uri: this.state.file_link }}   // Can be a URL or a local file.
+                        ref='video'                    // Store reference
+                        rate={1.0}                     // 0 is paused(停止), 1 is normal(正常).
+                        volume={1.0}                   // 0 is muted(静音), 1 is normal.
+                        muted={false}                  // Mutes the audio entirely(完全静音).
+                        paused={this.state.videoPause} // Pauses playback entirely(暂停播放完全).
+                        repeat={false}                 // Repeat forever(永远重复).
+                        playInBackground={true}       // Audio continues to play when app entering background(当应用程序进入背景时音频继续播放。).
+                        // playWhenInactive={false}       // [iOS] Video continues to play when control or notification center are shown.(视频播放)
+                        // progressUpdateInterval={250.0} // [iOS] Interval to fire onProgress (default to ~250ms)(进度)
+                        onProgress={this._onProgress.bind(this)}
+                        onLoad={(e) => this.onLoad(e)}  //获取播放总时长
+                    />
 
-                <View style={styles.bgImage}>
-                    <Image source={{ uri: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${data.albummid}.jpg?max_age=2592000` }} style={styles.musicCover} />
-                    <View style={styles.filter}></View>
-                </View>
-                <View style={styles.header}>
-                    <View style={styles.iconBackToList}>
-                        <Icon name="chevron-down" style={styles.chevronLeft} onPress={this._backToList.bind(this)} />
+                    <View style={styles.bgImage}>
+                        <Image source={{ uri: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${data.albummid}.jpg?max_age=2592000` }} style={styles.musicCover} />
+                        <View style={styles.filter}></View>
                     </View>
-                    <Text style={styles.headerTitle} ellipsizeMode='tail'>{data.songname}</Text>
-                    <Text style={styles.singer} ellipsizeMode='tail'>{data.singer[0].name}</Text>
-                </View>
-
-                <Image source={require('../images/film-reel.png')} style={{ width: 220, height: 220, alignSelf: 'center', marginTop: 50 }} />
-
-                {/*旋转小图*/}
-                <Animated.Image
-                    ref='myAnimate'
-                    style={{
-                        width: 140, height: 140, marginTop: -180, alignSelf: 'center', borderRadius: 140 * 0.5, transform: [{
-                            rotate: this.state.imgRotate.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ['0deg', '360deg']
-                            })
-                        }]
-                    }}
-                    source={{ uri: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${data.albummid}.jpg?max_age=2592000` }}
-                />
-
-                {/*歌词*/}
-                <View style={styles.playingLyricWrapper}>
-                    <ScrollView style={{ position: 'relative' }} ref={(scrollView) => { _scrollView = scrollView }}>
-                        {this.renderItem()}
-                    </ScrollView>
-                </View>
-
-                <View style={styles.playingContent}>
-                    <View style={styles.playingInfo}>
-                        <Text style={styles.textName}>{data.songname} - {data.singer[0].name}</Text>
-                        <Text style={styles.textTime}>{this.formatTime(Math.floor(this.state.currentTime))} - {this.formatTime(Math.floor(this.state.duration))}</Text>
+                    <View style={styles.header}>
+                        <View style={styles.iconBackToList}>
+                            <Icon name="chevron-down" style={styles.chevronLeft} onPress={this._backToList.bind(this)} />
+                        </View>
+                        <Text style={styles.headerTitle} ellipsizeMode='tail'>{data.songname}</Text>
+                        <Text style={styles.singer} ellipsizeMode='tail'>{data.singer[0].name}</Text>
                     </View>
 
-                    <View style={styles.playingControl}>
-                        <TouchableOpacity onPress={this._playButton.bind(this)}>
-                            <Icon style={styles.playButton} name={this.state.playButton} size={40} color='#ffcd32' />
-                        </TouchableOpacity>
-                        <Slider
-                            ref='slider'
-                            style={{ flex: 1, marginLeft: 10, marginRight: 10 }}
-                            value={this.state.sliderValue}
-                            maximumValue={this.state.file_duration}
-                            step={1}
-                            minimumTrackTintColor='#ffcd32'
-                        />
+                    <Image source={require('../images/film-reel.png')} style={{ width: 220, height: 220, alignSelf: 'center', marginTop: 50 }} />
+
+                    {/*旋转小图*/}
+                    <Animated.Image
+                        ref='myAnimate'
+                        style={{
+                            width: 140, height: 140, marginTop: -180, alignSelf: 'center', borderRadius: 140 * 0.5, transform: [{
+                                rotate: this.state.imgRotate.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ['0deg', '360deg']
+                                })
+                            }]
+                        }}
+                        source={{ uri: `https://y.gtimg.cn/music/photo_new/T002R300x300M000${data.albummid}.jpg?max_age=2592000` }}
+                    />
+
+                    {/*歌词*/}
+                    <View style={styles.playingLyricWrapper}>
+                        <ScrollView style={{ position: 'relative' }} ref={(scrollView) => { _scrollView = scrollView }}>
+                            {this.renderItem()}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.playingContent}>
+                        <View style={styles.playingInfo}>
+                            <Text style={styles.textName}>{data.songname} - {data.singer[0].name}</Text>
+                            <Text style={styles.textTime}>{this.formatTime(Math.floor(this.state.currentTime))} - {this.formatTime(Math.floor(this.state.duration))}</Text>
+                        </View>
+
+                        <View style={styles.playingControl}>
+                            <TouchableOpacity onPress={this._playButton.bind(this)}>
+                                <Icon style={styles.playButton} name={this.state.playButton} size={40} color='#ffcd32' />
+                            </TouchableOpacity>
+                            <Slider
+                                ref='slider'
+                                style={{ flex: 1, marginLeft: 10, marginRight: 10 }}
+                                value={this.state.sliderValue}
+                                maximumValue={this.state.file_duration}
+                                step={1}
+                                minimumTrackTintColor='#ffcd32'
+                                onValueChange={(value) => {
+                                    this.setState({
+                                        currentTime: value
+                                    })
+                                }}
+                                onSlidingComplete={(value) => {
+                                    this.refs.video.seek(value)
+                                }}
+                            />
+                        </View>
                     </View>
                 </View>
-            </View>
-        )
+            )
+        }
     }
 }
 

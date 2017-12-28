@@ -16,11 +16,13 @@ import {
 } from 'react-native';
 
 const width = Dimensions.get('window').width;
+
 const cachedResults = {
     dissName: '',
     defaultSource: 'http://bpic.588ku.com/element_origin_min_pic/01/47/03/35574339ab3c813.jpg',
     bgImage: '',
-    items: []
+    items: [],
+    songid: []
 }
 
 //列表模板
@@ -77,14 +79,19 @@ class List extends Component {
             type: 1
         }).then((responseJson) => {
             if (responseJson) {
-                console.log(responseJson);
                 cachedResults.dissName = responseJson.cdlist[0].dissname;
                 cachedResults.bgImage = responseJson.cdlist[0].logo;
 
-                let items = cachedResults.items.slice();
-                items = items.concat(responseJson.cdlist[0].songlist);
-
+                let items = responseJson.cdlist[0].songlist;
                 cachedResults.items = items;
+                //歌曲列表所有的歌曲ID
+                let listAry = items;
+                let songidAry = []; //保存song_id的数组
+                for (let i = 0; i < listAry.length; i++) {
+                    let songid = listAry[i].songid
+                    songidAry.push(songid)
+                }
+                cachedResults.songid = songidAry;
 
                 setTimeout(function () {
                     that.setState({
@@ -98,19 +105,21 @@ class List extends Component {
     }
 
     //ListView模板
-    _renderRow(row) {
+    _renderRow(row, sectionID, index) {
         return <Item
             key={row.dissid}
-            onSelect={() => this._loadPage(row)}
+            onSelect={() => this._loadPage(row, index)}
             row={row} />
     }
-    
-    _loadPage(row) {
+
+    _loadPage(row, index) {
         this.props.navigator.push({
             name: 'player',
             component: Player,
             params: {
-                data: row
+                disstid:this.state.id,
+                index: index,
+                songidAry: cachedResults.songid
             }
         })
     }
